@@ -154,4 +154,6 @@ if __name__ == '__main__':
         else:
             run(count,pkt, username, password, "brute", "./brute/", targetIP, "success")
 
+#python main.py wangsf wsf19961011 192.168.139.136 brute 1000
+
 
