@@ -11,6 +11,6 @@ class LSTM(nn.Module):
         self.out = nn.Linear(args.HIDDEN_SIZE, 2)
     def forward(self, x):
         x = x.float()
-        r_out, (h_n, h_c) = self.lstm(x, None)  # x (batch, time_step, input_size)
-        out = self.out(r_out)
+        lstm_out, (h_n, c_n) = self.lstm(x)  # x (batch, time_step, input_size)
+        out = self.out(lstm_out)
         return out
