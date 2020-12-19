@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import argparse, torch
+from tqdm import tqdm
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -9,7 +10,7 @@ from model.models import *
 
 def args_parse():
     parser = argparse.ArgumentParser(description='abnormal flow detection')
-    parser.add_argument('--MODEL', type=str, help='type of RNN model, option: LSTM, GNU, BiLSTM')
+    parser.add_argument('--MODEL', type=str, help='type of RNN model, option: LSTM, GRU, BiLSTM')
     parser.add_argument('--EPOCH', type=int, help='number of epochs')
     parser.add_argument('--BATCH-SIZE', type=int, help='minibatch size')
     parser.add_argument('--TIME-STEP', type=int, help='number of time steps')
@@ -60,7 +61,8 @@ def main():
     loss_func = nn.CrossEntropyLoss()
 
     for epoch in range(args.EPOCH):
-        for b_idx, (x, y) in enumerate(train_loader): # x: features of batch data, y: labels of batch data
+        pbar = tqdm(train_loader, unit='batch')
+        for (x, y) in pbar:
             b_x = Variable(x.view(-1, args.TIME_STEP, args.INPUT_SIZE))
             b_y = Variable(y)
             output = model(b_x).view(-1, 2)
@@ -69,22 +71,21 @@ def main():
             loss.backward()
             optimizer.step()
 
-            if b_idx % 1000 == 0:
-                total_test_loss = []
-                suc = 0
-                time = 0
-                for test_step,(test_x, test_y) in enumerate(test_loader):
-                    t_x = Variable(test_x.view(-1, args.TIME_STEP, args.INPUT_SIZE))
-                    t_y = Variable(test_y)
-                    output_test = model(t_x).view(-1, 2)
-                    loss_test = loss_func(output, t_y)
-                    total_test_loss.append(loss_test.item())
-                    for ind,d in enumerate(test_y):
-                        time += 1
-                        if np.argmax(output_test[ind].detach().numpy())==test_y[ind]:
-                            suc += 1
-                accuracy = suc/time
-                print("epoch:",epoch,"train_loss: {:0.4f} test_loss: {:0.4f} accruacy: {:0.4f}".format(loss.data,np.mean(total_test_loss),accuracy))
+        total_test_loss = []
+        num_right = 0
+        num_test = 0
+        for (test_x, test_y) in test_loader:
+            t_x = Variable(test_x.view(-1, args.TIME_STEP, args.INPUT_SIZE))
+            t_y = Variable(test_y)
+            output_test = model(t_x).view(-1, 2)
+            loss_test = loss_func(output, t_y)
+            total_test_loss.append(loss_test.item())
+            for ind,d in enumerate(test_y):
+                num_test += 1
+                if np.argmax(output_test[ind].detach().numpy())==test_y[ind]:
+                    num_right += 1
+        accuracy = num_right/num_test
+        print("epoch:",epoch,"train_loss: {:0.4f} test_loss: {:0.4f} accruacy: {:0.4f}".format(loss.data,np.mean(total_test_loss),accuracy))
 
 if __name__ == "__main__":
     main()

@@ -14,3 +14,19 @@ class LSTM(nn.Module):
         lstm_out, (h_n, c_n) = self.lstm(x)  # x (batch, time_step, input_size)
         out = self.out(lstm_out)
         return out
+
+
+class BiLSTM(nn.Module):
+    def __init__(self, args):
+        super(BiLSTM, self).__init__()
+        self.bilstm = nn.LSTM(input_size=args.INPUT_SIZE,
+                              hidden_size=args.HIDDEN_SIZE,
+                              num_layers=args.LAYER_NUM,
+                              batch_first=True,
+                              bidirectional=True)
+        self.out = nn.Linear(args.HIDDEN_SIZE, 2)
+    def forward(self, x):
+        x = x.float()
+        bilstm_out, (h_n, c_n) = self.bilstm(x,(2,))  # x (batch, time_step, input_size)
+        out = self.out(bilstm_out)
+        return out
