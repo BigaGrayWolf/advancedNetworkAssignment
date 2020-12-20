@@ -24,9 +24,9 @@ class BiLSTM(nn.Module):
                               num_layers=args.LAYER_NUM,
                               batch_first=True,
                               bidirectional=True)
-        self.out = nn.Linear(args.HIDDEN_SIZE, 2)
+        self.out = nn.Linear(args.HIDDEN_SIZE*2, 2)
     def forward(self, x):
         x = x.float()
-        bilstm_out, (h_n, c_n) = self.bilstm(x,(2,))  # x (batch, time_step, input_size)
+        bilstm_out, (h_n, c_n) = self.bilstm(x)  # x (batch, time_step, input_size)
         out = self.out(bilstm_out)
         return out
