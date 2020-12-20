@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import argparse, torch
 from tqdm import tqdm
+from sklearn import metrics
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -20,7 +21,7 @@ def args_parse():
     parser.add_argument('--LR', type=float, help='learning rate')
     parser.set_defaults(
         MODEL = 'LSTM',
-        EPOCH = 10,
+        EPOCH = 5,
         BATCH_SIZE = 50,
         TIME_STEP = 10,
         INPUT_SIZE = 8,
@@ -29,7 +30,6 @@ def args_parse():
         LR = 0.001
     )
     return parser.parse_args()
-
 
 class DataFormatting(Dataset):
     def __init__(self, csv_file):
@@ -47,6 +47,44 @@ class DataFormatting(Dataset):
         d = torch.from_numpy(np.array(self.feature.iloc[i]))
         return d, kind
 
+def loop_dataset(args, dataloader, model, loss_func, optimizer):
+    total_loss = []
+    total_acc = []
+    all_targets = []
+    all_scores = []
+    pbar = tqdm(dataloader, unit='batch', ascii=True)
+    for (x, y) in pbar:
+        b_x = Variable(x.view(-1, args.TIME_STEP, args.INPUT_SIZE))
+        b_y = Variable(y)
+
+        output = model(b_x).view(-1, 2)
+        all_targets.append(b_y.detach())
+
+        loss = loss_func(output, b_y)
+        total_loss.append(loss.item())
+
+        pred = np.argmax(output.detach(), axis=1)
+        all_scores.append(pred.detach())
+
+        acc = pred.eq(b_y).sum().item() / float(b_y.size()[0])
+        total_acc.append(acc)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        pbar.set_description('loss: %0.5f acc: %0.5f' % (loss, acc))
+
+    avg_loss = np.mean(total_loss)
+    avg_acc = np.mean(total_acc)
+
+    all_targets = torch.cat(all_targets).numpy()
+    all_scores = torch.cat(all_scores).numpy()
+    fpr, tpr, _ = metrics.roc_curve(all_targets, all_scores)
+    auc = metrics.auc(fpr, tpr)
+
+    return [avg_loss, avg_acc, auc]
+
 
 def main():
     args = args_parse()
@@ -57,35 +95,17 @@ def main():
     test_loader = DataLoader(dataset=testData, batch_size=args.BATCH_SIZE , shuffle=True, num_workers=4)
 
     model = eval(args.MODEL)(args)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.LR)
     loss_func = nn.CrossEntropyLoss()
-
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.LR)
+    
     for epoch in range(args.EPOCH):
-        pbar = tqdm(train_loader, unit='batch')
-        for (x, y) in pbar:
-            b_x = Variable(x.view(-1, args.TIME_STEP, args.INPUT_SIZE))
-            b_y = Variable(y)
-            output = model(b_x).view(-1, 2)
-            loss = loss_func(output, b_y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        total_test_loss = []
-        num_right = 0
-        num_test = 0
-        for (test_x, test_y) in test_loader:
-            t_x = Variable(test_x.view(-1, args.TIME_STEP, args.INPUT_SIZE))
-            t_y = Variable(test_y)
-            output_test = model(t_x).view(-1, 2)
-            loss_test = loss_func(output, t_y)
-            total_test_loss.append(loss_test.item())
-            for ind,d in enumerate(test_y):
-                num_test += 1
-                if np.argmax(output_test[ind].detach().numpy())==test_y[ind]:
-                    num_right += 1
-        accuracy = num_right/num_test
-        print("epoch:",epoch,"train_loss: {:0.4f} test_loss: {:0.4f} accruacy: {:0.4f}".format(loss.data,np.mean(total_test_loss),accuracy))
+        train_res = loop_dataset(args, train_loader, model, loss_func, optimizer)
+        print('\033[92maverage training of epoch %d: loss %.5f acc %.5f auc %.5f\033[0m' % (epoch, train_res[0], train_res[1], train_res[2]))
+        test_res = loop_dataset(args, test_loader, model, loss_func, optimizer)
+        print('\033[92maverage test of epoch %d: loss %.5f acc %.5f auc %.5f\033[0m' % (epoch, test_res[0], test_res[1], test_res[2]))
+        with open("log/"+"Results_"+args.MODEL+".txt", "a+") as f:
+            print('average training of epoch %d: loss %.5f acc %.5f auc %.5f' % (epoch, train_res[0], train_res[1], train_res[2]), file=f)
+            print('average test of epoch %d: loss %.5f acc %.5f auc %.5f' % (epoch, test_res[0], test_res[1], test_res[2]), file=f)
 
 if __name__ == "__main__":
     main()
