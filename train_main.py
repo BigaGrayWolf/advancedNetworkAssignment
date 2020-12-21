@@ -95,7 +95,7 @@ def main():
     test_loader = DataLoader(dataset=testData, batch_size=args.BATCH_SIZE , shuffle=True, num_workers=4)
 
     model = eval(args.MODEL)(args)
-    loss_func = nn.CrossEntropyLoss()
+    loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.LR)
     
     for epoch in range(args.EPOCH):
@@ -105,7 +105,7 @@ def main():
         print('\033[92maverage test of epoch %d: loss %.5f acc %.5f auc %.5f\033[0m' % (epoch, test_res[0], test_res[1], test_res[2]))
         with open("log/"+"Results_"+args.MODEL+".txt", "a+") as f:
             print('average training of epoch %d: loss %.5f acc %.5f auc %.5f' % (epoch, train_res[0], train_res[1], train_res[2]), file=f)
-            print('average test of epoch %d: loss %.5f acc %.5f auc %.5f' % (epoch, test_res[0], test_res[1], test_res[2]), file=f)
+            print('average test of epoch %d: loss %.5f acc %.5f auc %.5f\n' % (epoch, test_res[0], test_res[1], test_res[2]), file=f)
 
 if __name__ == "__main__":
     main()

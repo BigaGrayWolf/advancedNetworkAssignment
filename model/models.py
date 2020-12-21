@@ -15,6 +15,19 @@ class LSTM(nn.Module):
         out = self.out(lstm_out)
         return out
 
+class GRU(nn.Module):
+    def __init__(self, args):
+        super(GRU, self).__init__()
+        self.gru = nn.GRU(input_size=args.INPUT_SIZE,
+                            hidden_size=args.HIDDEN_SIZE,
+                            num_layers=args.LAYER_NUM,
+                            batch_first=True)
+        self.out = nn.Linear(args.HIDDEN_SIZE, 2)
+    def forward(self, x):
+        x = x.float()
+        gru_out, h_n = self.gru(x)  # x (batch, time_step, input_size)
+        out = self.out(gru_out)
+        return out
 
 class BiLSTM(nn.Module):
     def __init__(self, args):

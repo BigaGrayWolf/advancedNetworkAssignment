@@ -1,10 +1,15 @@
 average training of epoch 0: loss 0.48177 acc 0.79924 auc 0.79924
 average test of epoch 0: loss 0.24583 acc 0.96950 auc 0.96950
+
 average training of epoch 1: loss 0.11436 acc 0.98543 auc 0.98543
 average test of epoch 1: loss 0.04790 acc 0.99750 auc 0.99750
+
 average training of epoch 2: loss 0.04071 acc 0.99524 auc 0.99524
 average test of epoch 2: loss 0.01572 acc 1.00000 auc 1.00000
+
 average training of epoch 3: loss 0.02661 acc 0.99603 auc 0.99603
 average test of epoch 3: loss 0.00640 acc 1.00000 auc 1.00000
+
 average training of epoch 4: loss 0.02274 acc 0.99611 auc 0.99611
 average test of epoch 4: loss 0.00417 acc 1.00000 auc 1.00000
+
